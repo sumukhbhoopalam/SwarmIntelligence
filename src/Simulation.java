@@ -108,6 +108,47 @@ public class Simulation extends JFrame {
 				specialRemoved = true;
 			}
 
+			// Check for contact between black vehicles and golden yellow vehicle
+			Vehicle goldenVeh = null;
+			for (Vehicle vehicle : allVehicles) {
+				if (vehicle.type == 2) {
+					goldenVeh = vehicle;
+					break;
+				}
+			}
+			
+			if (goldenVeh != null) {
+				ArrayList<Vehicle> toRemove = new ArrayList<>();
+				for (Vehicle veh : allVehicles) {
+					if (veh.type == 0 && !veh.isNew) { // Only check black vehicles (original, not new)
+						double dx = veh.pos[0] - goldenVeh.pos[0];
+						double dy = veh.pos[1] - goldenVeh.pos[1];
+						double dist = Math.sqrt(dx * dx + dy * dy);
+						// Use a contact threshold based on vehicle sizes
+						double contactThreshold = (veh.FZL + goldenVeh.FZL) * 3.0; // 3x FZL for each
+						if (dist < contactThreshold) {
+							toRemove.add(veh);
+						}
+					}
+				}
+				// Remove black vehicles that touched the golden yellow vehicle
+				allVehicles.removeAll(toRemove);
+			}
+
+			// Add the new golden yellow special vehicle after 15 seconds (2 seconds after red special is removed)
+			if (elapsed > 15000 && !allVehicles.stream().anyMatch(vehicle -> vehicle.type == 2)) {
+				Vehicle goldenVehicle = new Vehicle();
+				goldenVehicle.type = 2;
+				// Position it at a random location
+				goldenVehicle.pos[0] = 1000 * Simulation.pix * Math.random();
+				goldenVehicle.pos[1] = 800 * Simulation.pix * Math.random();
+				// Give it initial velocity to start moving
+				double angle = 2 * Math.PI * Math.random();
+				goldenVehicle.vel[0] = goldenVehicle.max_vel * Math.cos(angle);
+				goldenVehicle.vel[1] = goldenVehicle.max_vel * Math.sin(angle);
+				allVehicles.add(goldenVehicle);
+			}
+
 			for (int i = 0; i < allVehicles.size(); i++) {
 				v = allVehicles.get(i);
 				// Only move the special vehicle if it is active
