@@ -16,13 +16,19 @@ public class Canvas extends JPanel {
 		this.allVehicles = allVehicles;
 		this.pix         = pix;
 		this.setBackground(Color.WHITE);
-		setSize(5000,5000);
+		setSize(1000,800);
 	}
 
 	public Polygon kfzInPolygon(Vehicle fz){
 		Polygon   q = new Polygon();
-		int    l    = (int)(fz.FZL/pix);
-		int    b    = (int)(fz.FZB/pix);
+		int l, b;
+		if (fz.type == 1) {
+			l = (int)((fz.FZL * 6.0)/pix); // 6x longer
+			b = (int)((fz.FZB * 6.0)/pix); // 6x wider
+		} else {
+			l = (int)(fz.FZL/pix);
+			b = (int)(fz.FZB/pix);
+		}
 		int    x    = (int)(fz.pos[0]/pix);
 		int    y    = (int)(fz.pos[1]/pix);
 		int    dia  = (int)(Math.sqrt(Math.pow(l/2, 2)+Math.pow(b/2, 2)));
@@ -62,13 +68,13 @@ public class Canvas extends JPanel {
        		int    x  = (int)(fz.pos[0]/pix);
        		int    y  = (int)(fz.pos[1]/pix);
        		
-       		if(fz.type==1){
-        		int seite = (int)(fz.rad_zus/pix);
-            	g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
-        		seite = (int)(fz.rad_sep/pix);
-            	g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
-            	
-       		}
+       		// Remove radius visualization for special vehicle
+       		// if(fz.type==1){
+       		//     int seite = (int)(fz.rad_zus/pix);
+       		//     g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
+       		//     seite = (int)(fz.rad_sep/pix);
+       		//     g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
+       		// }
    	  	}        
     }
 }

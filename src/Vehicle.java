@@ -15,25 +15,40 @@ public class Vehicle {
 	final double max_acc; 
 	final double max_vel; 
 
+	// For special vehicle random walk
+	private double wanderAngle = 2 * Math.PI * Math.random();
+
+	boolean isFleeing = false; // Track if this vehicle is fleeing for panic propagation
 
 	Vehicle() {
 		allId++;
 		this.id = allId;
 		this.FZL = 2;
 		this.FZB = 1;
-		this.rad_sep = 7;// 50
-		this.rad_zus = 25;// 25
+		this.rad_sep = 15; // Moderate separation radius
+		this.rad_zus = 120; // Larger cohesion/alignment radius
 		this.type = 0;
 		this.max_acc = 0.05;// 0.1
 		this.max_vel = 1;
 
 		pos = new double[2];
 		vel = new double[2];
-		
-		pos[0] = Simulation.pix * 500 * Math.random();
-		pos[1] = Simulation.pix * 500 * Math.random();
-		vel[0] = max_vel * Math.random();
-		vel[1] = max_vel * Math.random();
+		// Spawn swarm vehicles in a tight cluster near the center
+		if (this.type == 1) {
+			// Special vehicle: anywhere in 1000x800 canvas
+			pos[0] = 1000 * Simulation.pix * Math.random();
+			pos[1] = 800 * Simulation.pix * Math.random();
+		} else {
+			// Swarm: cluster in center with small random offset
+			double centerX = 1600 * Simulation.pix / 2.0;
+			double centerY = 800 * Simulation.pix / 2.0;
+			pos[0] = centerX + 40 * (Math.random() - 0.5); // +/-20px
+			pos[1] = centerY + 40 * (Math.random() - 0.5); // +/-20px
+		}
+		// Random direction, full speed
+		double angle = 2 * Math.PI * Math.random();
+		vel[0] = max_vel * Math.cos(angle);
+		vel[1] = max_vel * Math.sin(angle);
 	}
 
 	ArrayList<Vehicle> neighbours(ArrayList<Vehicle> all, double radius1, double radius2) {
@@ -181,25 +196,106 @@ public class Vehicle {
 		double[] acc_dest1 = new double[2];
 		double[] acc_dest2 = new double[2];
 		double[] acc_dest3 = new double[2];
-		double f_zus = 0.05;
-		double f_sep = 0.55; // 0.55
-		double f_aus = 0.4;
+		double[] acc_flee  = new double[2];
+		double[] acc_rand  = new double[2];
+		double f_zus = 0.15;   // Stronger cohesion
+		double f_sep = 0.3;    // Moderate separation
+		double f_aus = 0.5;    // Stronger alignment
+		double f_flee = 8.0;   // Flee force unchanged
+		double f_rand = 0.15;  // Much less random force
+		double fleeRadius = 0;
+		for (Vehicle v : allVehicles) {
+			if (v.type == 1) {
+				fleeRadius = Math.max(200, v.FZL * 12.0); // 12x FZL, at least 200
+				break;
+			}
+		}
+		double panicRadius = 60; // Much smaller panic effect for tighter swarm
 
 		if (type == 1) {
-			acc_dest = random();
+			isFleeing = false;
+			acc_dest = robustRandomWalk();
 		} else {
-			acc_dest1 = cohesion(allVehicles);
-			//acc_dest1 = follow(allVehicles);
-			acc_dest2 = separation(allVehicles);
-			acc_dest3 = alignment(allVehicles);
-
-			acc_dest[0] = (f_zus * acc_dest1[0]) + (f_sep * acc_dest2[0] + (f_aus * acc_dest3[0]));
-			acc_dest[1] = (f_zus * acc_dest1[1]) + (f_sep * acc_dest2[1] + (f_aus * acc_dest3[1]));
-
+			// Find special vehicle
+			Vehicle special = null;
+			for (Vehicle v : allVehicles) {
+				if (v.type == 1) {
+					special = v;
+					break;
+				}
+			}
+			// Check if this vehicle should flee
+			boolean shouldFlee = false;
+			if (special != null) {
+				double dx = pos[0] - special.pos[0];
+				double dy = pos[1] - special.pos[1];
+				double dist = Math.sqrt(dx * dx + dy * dy);
+				if (dist < fleeRadius) {
+					shouldFlee = true;
+				}
+			}
+			// Panic propagation: if any other vehicle is fleeing and close, also flee
+			if (!shouldFlee) {
+				for (Vehicle v : allVehicles) {
+					if (v == this || v.type == 1) continue;
+					if (v.isFleeing) {
+						double vdx = v.pos[0] - pos[0];
+						double vdy = v.pos[1] - pos[1];
+						double vdist = Math.sqrt(vdx * vdx + vdy * vdy);
+						if (vdist < panicRadius) {
+							shouldFlee = true;
+							break;
+						}
+					}
+				}
+			}
+			isFleeing = shouldFlee;
+			if (shouldFlee) {
+				acc_flee = fleeFromSpecialVehicle(allVehicles, fleeRadius);
+				acc_dest[0] = f_flee * acc_flee[0];
+				acc_dest[1] = f_flee * acc_flee[1];
+			} else {
+				acc_dest1 = cohesion(allVehicles);
+				acc_dest2 = separation(allVehicles);
+				acc_dest3 = alignment(allVehicles);
+				acc_rand = randomSmall();
+				acc_dest[0] = (f_zus * acc_dest1[0]) + (f_sep * acc_dest2[0]) + (f_aus * acc_dest3[0]) + (f_rand * acc_rand[0]);
+				acc_dest[1] = (f_zus * acc_dest1[1]) + (f_sep * acc_dest2[1]) + (f_aus * acc_dest3[1]) + (f_rand * acc_rand[1]);
+			}
 		}
-		
 		acc_dest = VectorCalculation.truncate(acc_dest, max_acc);
 		return acc_dest;
+	}
+
+	// Small random vector for swarm vehicles
+	private double[] randomSmall() {
+		double[] acc = new double[2];
+		double angle = 2 * Math.PI * Math.random();
+		double mag = 1.0 + 2.0 * Math.random(); // 1.0 to 3.0 (more variable)
+		// Add a small bias to change direction more often
+		if (Math.random() < 0.2) {
+			angle += (Math.random() - 0.5) * Math.PI;
+		}
+		acc[0] = Math.cos(angle) * mag;
+		acc[1] = Math.sin(angle) * mag;
+		return acc;
+	}
+
+	// Robust random walk for special vehicle
+	private double[] robustRandomWalk() {
+		double[] acc = new double[2];
+		// Persistent direction, but allow smooth change
+		wanderAngle += (Math.random() - 0.5) * 0.08; // Very smooth
+		double mag = 2.0 + 1.0 * Math.random(); // Fast: 2.0 to 3.0
+		acc[0] = Math.cos(wanderAngle) * mag;
+		acc[1] = Math.sin(wanderAngle) * mag;
+		// Strong repulsion from all four edges (use 1000x800 canvas)
+		double margin = 100;
+		if (pos[0] < margin) acc[0] += 4.0;
+		if (pos[0] > 1000 * Simulation.pix - margin) acc[0] -= 4.0;
+		if (pos[1] < margin) acc[1] += 4.0;
+		if (pos[1] > 800 * Simulation.pix - margin) acc[1] -= 4.0;
+		return acc;
 	}
 
 	void move(ArrayList<Vehicle> allVehicles) {
@@ -311,5 +407,28 @@ public class Vehicle {
 		return erg;
 	}
 
-	
+	// Flee from the special vehicle (type 1) if within a certain radius
+	private double[] fleeFromSpecialVehicle(ArrayList<Vehicle> allVehicles, double fleeRadius) {
+		double[] acc_flee = new double[2];
+		acc_flee[0] = 0;
+		acc_flee[1] = 0;
+		Vehicle special = null;
+		for (Vehicle v : allVehicles) {
+			if (v.type == 1) {
+				special = v;
+				break;
+			}
+		}
+		if (special != null) {
+			double dx = pos[0] - special.pos[0];
+			double dy = pos[1] - special.pos[1];
+			double dist = Math.sqrt(dx * dx + dy * dy);
+			if (dist < fleeRadius && dist > 0.01) {
+				// Flee direction is away from the special vehicle
+				acc_flee[0] = dx / dist * max_acc * (fleeRadius - dist) / fleeRadius;
+				acc_flee[1] = dy / dist * max_acc * (fleeRadius - dist) / fleeRadius;
+			}
+		}
+		return acc_flee;
+	}
 }
