@@ -19,6 +19,7 @@ public class Vehicle {
 	private double wanderAngle = 2 * Math.PI * Math.random();
 
 	boolean isFleeing = false; // Track if this vehicle is fleeing for panic propagation
+	boolean isNew = false; // True for new vehicles spawned after 10 seconds
 
 	Vehicle() {
 		allId++;
@@ -49,6 +50,7 @@ public class Vehicle {
 		double angle = 2 * Math.PI * Math.random();
 		vel[0] = max_vel * Math.cos(angle);
 		vel[1] = max_vel * Math.sin(angle);
+		this.isNew = false;
 	}
 
 	ArrayList<Vehicle> neighbours(ArrayList<Vehicle> all, double radius1, double radius2) {

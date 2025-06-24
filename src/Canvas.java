@@ -62,7 +62,8 @@ public class Canvas extends JPanel {
       		
           	
           	if(fz.type==1)g2d.setColor(Color.RED);
-          	else 		  g2d.setColor(Color.BLACK);
+          	else if (fz instanceof Vehicle && fz.isNew) g2d.setColor(new Color(139, 69, 19)); // brown
+          	else g2d.setColor(Color.BLACK);
         	g2d.draw(q);
     		
        		int    x  = (int)(fz.pos[0]/pix);
