@@ -198,19 +198,19 @@ public class Vehicle {
 		double[] acc_dest3 = new double[2];
 		double[] acc_flee  = new double[2];
 		double[] acc_rand  = new double[2];
-		double f_zus = 0.15;   // Stronger cohesion
-		double f_sep = 0.3;    // Moderate separation
+		double f_zus = 0.30;   // Stronger cohesion
+		double f_sep = 0.2;    // Moderate separation
 		double f_aus = 0.5;    // Stronger alignment
 		double f_flee = 8.0;   // Flee force unchanged
 		double f_rand = 0.15;  // Much less random force
 		double fleeRadius = 0;
 		for (Vehicle v : allVehicles) {
 			if (v.type == 1) {
-				fleeRadius = Math.max(200, v.FZL * 12.0); // 12x FZL, at least 200
+				fleeRadius = Math.max(50, v.FZL * 12.0); // Restore original logic
 				break;
 			}
 		}
-		double panicRadius = 60; // Much smaller panic effect for tighter swarm
+		double panicRadius = 0; // Much larger panic effect for full swarm propagation
 
 		if (type == 1) {
 			isFleeing = false;
@@ -252,8 +252,18 @@ public class Vehicle {
 			isFleeing = shouldFlee;
 			if (shouldFlee) {
 				acc_flee = fleeFromSpecialVehicle(allVehicles, fleeRadius);
-				acc_dest[0] = f_flee * acc_flee[0];
-				acc_dest[1] = f_flee * acc_flee[1];
+				acc_dest1 = cohesion(allVehicles);
+				acc_dest2 = separation(allVehicles);
+				acc_dest3 = alignment(allVehicles);
+				acc_rand = randomSmall();
+				// Blend flee with swarm rules (strongest flee force, reduced swarm influence)
+				double fleeWeight = 50.0;   // Even stronger flee force
+				double zusWeight = 0.05;    // Lower cohesion during panic
+				double sepWeight = 0;     // Lower separation during panic
+				double ausWeight = 0.05;     // Lower alignment during panic
+				double randWeight = 0;   // Lower randomness during panic
+				acc_dest[0] = (fleeWeight * acc_flee[0]) + (zusWeight * acc_dest1[0]) + (sepWeight * acc_dest2[0]) + (ausWeight * acc_dest3[0]) + (randWeight * acc_rand[0]);
+				acc_dest[1] = (fleeWeight * acc_flee[1]) + (zusWeight * acc_dest1[1]) + (sepWeight * acc_dest2[1]) + (ausWeight * acc_dest3[1]) + (randWeight * acc_rand[1]);
 			} else {
 				acc_dest1 = cohesion(allVehicles);
 				acc_dest2 = separation(allVehicles);
@@ -424,9 +434,9 @@ public class Vehicle {
 			double dy = pos[1] - special.pos[1];
 			double dist = Math.sqrt(dx * dx + dy * dy);
 			if (dist < fleeRadius && dist > 0.01) {
-				// Flee direction is away from the special vehicle
-				acc_flee[0] = dx / dist * max_acc * (fleeRadius - dist) / fleeRadius;
-				acc_flee[1] = dy / dist * max_acc * (fleeRadius - dist) / fleeRadius;
+				// Flee direction is away from the special vehicle, always at max_acc
+				acc_flee[0] = dx / dist * max_acc;
+				acc_flee[1] = dy / dist * max_acc;
 			}
 		}
 		return acc_flee;
