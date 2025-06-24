@@ -216,7 +216,7 @@ public class Vehicle {
 
 		if (type == 1) {
 			isFleeing = false;
-			acc_dest = robustRandomWalk();
+			acc_dest = chaseSwarm(allVehicles);
 		} else {
 			// Find special vehicle
 			Vehicle special = null;
@@ -293,20 +293,71 @@ public class Vehicle {
 		return acc;
 	}
 
-	// Robust random walk for special vehicle
-	private double[] robustRandomWalk() {
+	// Chase the swarm for special vehicle
+	private double[] chaseSwarm(ArrayList<Vehicle> allVehicles) {
 		double[] acc = new double[2];
-		// Persistent direction, but allow smooth change
-		wanderAngle += (Math.random() - 0.5) * 0.08; // Very smooth
-		double mag = 2.0 + 1.0 * Math.random(); // Fast: 2.0 to 3.0
-		acc[0] = Math.cos(wanderAngle) * mag;
-		acc[1] = Math.sin(wanderAngle) * mag;
-		// Strong repulsion from all four edges (use 1000x800 canvas)
+		acc[0] = 0;
+		acc[1] = 0;
+		
+		// Find the nearest swarm vehicle or center of mass of nearby swarm vehicles
+		double nearestDist = Double.MAX_VALUE;
+		Vehicle nearest = null;
+		double centerX = 0, centerY = 0;
+		int nearbyCount = 0;
+		double detectionRadius = 200; // Radius to detect swarm vehicles
+		
+		for (Vehicle v : allVehicles) {
+			if (v.type == 0) { // Only consider swarm vehicles
+				double dx = v.pos[0] - pos[0];
+				double dy = v.pos[1] - pos[1];
+				double dist = Math.sqrt(dx * dx + dy * dy);
+				
+				// Track nearest vehicle
+				if (dist < nearestDist) {
+					nearestDist = dist;
+					nearest = v;
+				}
+				
+				// Calculate center of mass of nearby vehicles
+				if (dist < detectionRadius) {
+					centerX += v.pos[0];
+					centerY += v.pos[1];
+					nearbyCount++;
+				}
+			}
+		}
+		
+		if (nearest != null) {
+			if (nearbyCount > 0) {
+				// Move toward center of mass of nearby vehicles
+				centerX /= nearbyCount;
+				centerY /= nearbyCount;
+				double dx = centerX - pos[0];
+				double dy = centerY - pos[1];
+				double dist = Math.sqrt(dx * dx + dy * dy);
+				if (dist > 0.01) {
+					acc[0] = (dx / dist) * max_acc * 2.0; // Stronger chase force
+					acc[1] = (dy / dist) * max_acc * 2.0;
+				}
+			} else {
+				// Move toward nearest vehicle if no nearby ones
+				double dx = nearest.pos[0] - pos[0];
+				double dy = nearest.pos[1] - pos[1];
+				double dist = Math.sqrt(dx * dx + dy * dy);
+				if (dist > 0.01) {
+					acc[0] = (dx / dist) * max_acc * 2.0;
+					acc[1] = (dy / dist) * max_acc * 2.0;
+				}
+			}
+		}
+		
+		// Add some edge avoidance
 		double margin = 100;
-		if (pos[0] < margin) acc[0] += 4.0;
-		if (pos[0] > 1000 * Simulation.pix - margin) acc[0] -= 4.0;
-		if (pos[1] < margin) acc[1] += 4.0;
-		if (pos[1] > 800 * Simulation.pix - margin) acc[1] -= 4.0;
+		if (pos[0] < margin) acc[0] += 2.0;
+		if (pos[0] > 1000 * Simulation.pix - margin) acc[0] -= 2.0;
+		if (pos[1] < margin) acc[1] += 2.0;
+		if (pos[1] > 800 * Simulation.pix - margin) acc[1] -= 2.0;
+		
 		return acc;
 	}
 
