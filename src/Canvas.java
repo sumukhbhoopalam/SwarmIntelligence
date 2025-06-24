@@ -77,5 +77,9 @@ public class Canvas extends JPanel {
        		//     g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
        		// }
    	  	}        
+
+        // Draw total number of vehicles in the top-left corner
+        g2d.setColor(Color.BLUE);
+        g2d.drawString("Total vehicles: " + allVehicles.size(), 20, 20);
     }
 }

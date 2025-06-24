@@ -208,7 +208,7 @@ public class Vehicle {
 		double fleeRadius = 0;
 		for (Vehicle v : allVehicles) {
 			if (v.type == 1) {
-				fleeRadius = Math.max(50, v.FZL * 12.0); // Restore original logic
+				fleeRadius = Math.max(70, v.FZL * 12.0); // Restore original logic
 				break;
 			}
 		}
