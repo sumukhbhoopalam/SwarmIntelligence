@@ -43,6 +43,12 @@ public class Vehicle {
 		} else if (this.type == 2) {
 			// Golden yellow special vehicle
 			this.max_vel = 0.01; // Much slower than other vehicles
+		} else if (this.type == 3) {
+			// Lavender special vehicle: same size as other specials
+			pos[0] = 1000 * Simulation.pix * Math.random();
+			pos[1] = 800 * Simulation.pix * Math.random();
+			this.max_vel = 0.1;
+			// FZL and FZB are already set to 2 and 1, but drawing code multiplies by 6x for specials
 		} else {
 			// Swarm: cluster in center with small random offset
 			double centerX = 1600 * Simulation.pix / 2.0;
@@ -220,11 +226,14 @@ public class Vehicle {
 
 		Vehicle special = null;
 		Vehicle goldenSpecial = null;
+		Vehicle lavenderSpecial = null;
 		for (Vehicle v : allVehicles) {
 			if (v.type == 1) {
 				special = v;
 			} else if (v.type == 2) {
 				goldenSpecial = v;
+			} else if (v.type == 3) {
+				lavenderSpecial = v;
 			}
 		}
 		if (type == 1) {
@@ -249,6 +258,10 @@ public class Vehicle {
 				acc_dest[0] = (f_zus * acc_dest1[0]) + (f_sep * acc_dest2[0]) + (f_aus * acc_dest3[0]) + (f_rand * acc_rand[0]);
 				acc_dest[1] = (f_zus * acc_dest1[1]) + (f_sep * acc_dest2[1]) + (f_aus * acc_dest3[1]) + (f_rand * acc_rand[1]);
 			}
+			isFleeing = false;
+		} else if (lavenderSpecial != null) {
+			// All vehicles (black and brown) surround lavender vehicle
+			acc_dest = surroundLavenderVehicle(allVehicles, lavenderSpecial);
 			isFleeing = false;
 		} else {
 			// Check if this vehicle should flee from red or yellow special vehicle
@@ -832,5 +845,30 @@ public class Vehicle {
 		}
 
 		return acc_dest;
+	}
+
+	// Behavior for all vehicles to surround the lavender special vehicle
+	private double[] surroundLavenderVehicle(ArrayList<Vehicle> allVehicles, Vehicle lavenderSpecial) {
+		double[] acc = new double[2];
+		acc[0] = 0;
+		acc[1] = 0;
+		// Calculate distance to lavender special vehicle
+		double dx = lavenderSpecial.pos[0] - pos[0];
+		double dy = lavenderSpecial.pos[1] - pos[1];
+		double dist = Math.sqrt(dx * dx + dy * dy);
+		// Contact threshold - when vehicles are close enough to touch
+		double contactThreshold = (FZL + lavenderSpecial.FZL) * 4.0;
+		// If vehicle is already touching the lavender vehicle, move with it
+		if (dist < contactThreshold) {
+			acc[0] = lavenderSpecial.vel[0] * 0.8;
+			acc[1] = lavenderSpecial.vel[1] * 0.8;
+			return acc;
+		}
+		// Move toward the lavender vehicle to touch it
+		if (dist > 0.01) {
+			acc[0] = (dx / dist) * max_acc * 1.0;
+			acc[1] = (dy / dist) * max_acc * 1.0;
+		}
+		return acc;
 	}
 }

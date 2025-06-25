@@ -22,7 +22,7 @@ public class Canvas extends JPanel {
 	public Polygon kfzInPolygon(Vehicle fz){
 		Polygon   q = new Polygon();
 		int l, b;
-		if (fz.type == 1 || fz.type == 2) {
+		if (fz.type == 1 || fz.type == 2 || fz.type == 3) {
 			l = (int)((fz.FZL * 6.0)/pix); // 6x longer
 			b = (int)((fz.FZB * 6.0)/pix); // 6x wider
 		} else {
@@ -63,6 +63,7 @@ public class Canvas extends JPanel {
           	
           	if(fz.type==1)g2d.setColor(Color.RED);
           	else if (fz.type==2)g2d.setColor(new Color(255, 215, 0)); // Golden yellow
+          	else if (fz.type==3)g2d.setColor(new Color(181, 126, 220)); // Lavender
           	else if (fz instanceof Vehicle && fz.isNew) g2d.setColor(new Color(139, 69, 19)); // brown
           	else g2d.setColor(Color.BLACK);
         	g2d.draw(q);

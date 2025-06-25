@@ -14,7 +14,8 @@ public class Simulation extends JFrame {
 	JPanel canvas = new Canvas(allVehicles, pix);
 	JButton redButton;
 	JButton yellowButton;
-	volatile int specialVehicleType = 0; // 0: none, 1: red, 2: yellow
+	JButton lavenderButton;
+	volatile int specialVehicleType = 0; // 0: none, 1: red, 2: yellow, 3: lavender
 	Timer redTimer = new Timer();
 	TimerTask redTimerTask = null;
 	Timer newVehiclesTimer = new Timer();
@@ -32,11 +33,14 @@ public class Simulation extends JFrame {
 
 		redButton = new JButton("Start Red Special Vehicle");
 		yellowButton = new JButton("Start Yellow Special Vehicle");
+		lavenderButton = new JButton("Start Lavender Special Vehicle");
 		redButton.setBounds(20, 10, 200, 30);
 		yellowButton.setBounds(240, 10, 220, 30);
+		lavenderButton.setBounds(480, 10, 240, 30);
 		canvas.setBounds(0, 50, 1000, 750);
 		add(redButton);
 		add(yellowButton);
+		add(lavenderButton);
 		add(canvas);
 		setSize(1020, 850);
 		setVisible(true);
@@ -51,11 +55,16 @@ public class Simulation extends JFrame {
 				activateSpecialVehicle(2);
 			}
 		});
+		lavenderButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				activateSpecialVehicle(3);
+			}
+		});
 	}
 
 	private synchronized void activateSpecialVehicle(int type) {
 		// Remove any existing special vehicle
-		allVehicles.removeIf(v -> v.type == 1 || v.type == 2);
+		allVehicles.removeIf(v -> v.type == 1 || v.type == 2 || v.type == 3);
 		// Cancel any running red timer
 		if (redTimerTask != null) {
 			redTimerTask.cancel();
@@ -128,6 +137,21 @@ public class Simulation extends JFrame {
 				}
 			};
 			redTimer.schedule(redTimerTask, 10000);
+		} else if (type == 3) {
+			special.max_vel = 0.1;
+			special.pos[0] = 1000 * Simulation.pix * Math.random();
+			special.pos[1] = 800 * Simulation.pix * Math.random();
+			// Start timer to remove after 10 seconds
+			redTimerTask = new TimerTask() {
+				public void run() {
+					synchronized (Simulation.this) {
+						allVehicles.removeIf(v -> v.type == 3);
+						if (specialVehicleType == 3) specialVehicleType = 0;
+						repaint();
+					}
+				}
+			};
+			redTimer.schedule(redTimerTask, 10000);
 		}
 		double angle = 2 * Math.PI * Math.random();
 		special.vel[0] = special.max_vel * Math.cos(angle);
@@ -145,11 +169,11 @@ public class Simulation extends JFrame {
 		Vehicle v;
 		while (true) {
 			// Remove all but one special vehicle if any bug
-			allVehicles.removeIf(veh -> (veh.type == 1 || veh.type == 2) && veh.type != specialVehicleType);
+			allVehicles.removeIf(veh -> (veh.type == 1 || veh.type == 2 || veh.type == 3) && veh.type != specialVehicleType);
 			// Contact logic for red special vehicle
 			Vehicle special = null;
 			for (Vehicle veh : allVehicles) {
-				if (veh.type == 1 || veh.type == 2) {
+				if (veh.type == 1 || veh.type == 2 || veh.type == 3) {
 					special = veh;
 					break;
 				}
