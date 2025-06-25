@@ -20,6 +20,7 @@ public class Vehicle {
 
 	boolean isFleeing = false; // Track if this vehicle is fleeing for panic propagation
 	boolean isNew = false; // True for new vehicles spawned after 10 seconds
+	public boolean isOrange = false; // True for orange vehicles spawned after yellow is deleted
 
 	Vehicle() {
 		allId++;
@@ -217,6 +218,7 @@ public class Vehicle {
 		double f_rand = 0.15;  // Much less random force
 		double fleeRadius = 0;
 		for (Vehicle v : allVehicles) {
+			if (v == null) continue;
 			if (v.type == 1 || v.type == 2) {
 				fleeRadius = Math.max(70, v.FZL * 12.0); // Restore original logic
 				break;
@@ -228,6 +230,7 @@ public class Vehicle {
 		Vehicle goldenSpecial = null;
 		Vehicle lavenderSpecial = null;
 		for (Vehicle v : allVehicles) {
+			if (v == null) continue;
 			if (v.type == 1) {
 				special = v;
 			} else if (v.type == 2) {
@@ -281,7 +284,7 @@ public class Vehicle {
 			// Panic propagation: if any other vehicle is fleeing and close, also flee
 			if (!shouldFlee) {
 				for (Vehicle v : allVehicles) {
-					if (v == this || v.type == 1 || v.type == 2) continue;
+					if (v == null || v == this || v.type == 1 || v.type == 2) continue;
 					if (v.isFleeing) {
 						double vdx = v.pos[0] - pos[0];
 						double vdy = v.pos[1] - pos[1];
@@ -385,23 +388,22 @@ public class Vehicle {
 		double detectionRadius = 200; // Radius to detect swarm vehicles
 		
 		for (Vehicle v : allVehicles) {
-			if (v.type == 0) { // Only consider swarm vehicles
-				double dx = v.pos[0] - pos[0];
-				double dy = v.pos[1] - pos[1];
-				double dist = Math.sqrt(dx * dx + dy * dy);
-				
-				// Track nearest vehicle
-				if (dist < nearestDist) {
-					nearestDist = dist;
-					nearest = v;
-				}
-				
-				// Calculate center of mass of nearby vehicles
-				if (dist < detectionRadius) {
-					centerX += v.pos[0];
-					centerY += v.pos[1];
-					nearbyCount++;
-				}
+			if (v == null || v.type != 0) continue; // Only consider swarm vehicles
+			double dx = v.pos[0] - pos[0];
+			double dy = v.pos[1] - pos[1];
+			double dist = Math.sqrt(dx * dx + dy * dy);
+			
+			// Track nearest vehicle
+			if (dist < nearestDist) {
+				nearestDist = dist;
+				nearest = v;
+			}
+			
+			// Calculate center of mass of nearby vehicles
+			if (dist < detectionRadius) {
+				centerX += v.pos[0];
+				centerY += v.pos[1];
+				nearbyCount++;
 			}
 		}
 		
@@ -560,17 +562,16 @@ public class Vehicle {
 		boolean shouldMoveWithGolden = false;
 		if (type == 0) { // Only check for swarm vehicles
 			for (Vehicle v : allVehicles) {
-				if (v.type == 2) { // Golden yellow vehicle
-					double dx = pos[0] - v.pos[0];
-					double dy = pos[1] - v.pos[1];
-					double dist = Math.sqrt(dx * dx + dy * dy);
-					double contactThreshold = (FZL + v.FZL) * 4.0; // Increased to 4x the combined vehicle sizes
-					
-					// If within vicinity and touching, move with the golden vehicle (only for brown vehicles)
-					if (dist < 300 && dist < contactThreshold && isNew) {
-						shouldMoveWithGolden = true;
-						break;
-					}
+				if (v == null || v.type != 2) continue; // Golden yellow vehicle
+				double dx = pos[0] - v.pos[0];
+				double dy = pos[1] - v.pos[1];
+				double dist = Math.sqrt(dx * dx + dy * dy);
+				double contactThreshold = (FZL + v.FZL) * 4.0; // Increased to 4x the combined vehicle sizes
+				
+				// If within vicinity and touching, move with the golden vehicle (only for brown vehicles)
+				if (dist < 300 && dist < contactThreshold && isNew) {
+					shouldMoveWithGolden = true;
+					break;
 				}
 			}
 		}
@@ -635,8 +636,9 @@ public class Vehicle {
 		if (type == 0) {
 			for (int i = 0; i < all.size(); i++) {
 				v = all.get(i);
-				if (v.type == 1)
-					break;
+				if (v == null || v.type != 1)
+					continue;
+				break;
 			}
 			double dist = Math.sqrt(Math.pow(v.pos[0] - this.pos[0], 2) + Math.pow(v.pos[1] - this.pos[1], 2));
 
@@ -702,10 +704,9 @@ public class Vehicle {
 		acc_flee[1] = 0;
 		Vehicle special = null;
 		for (Vehicle v : allVehicles) {
-			if (v.type == 1 || v.type == 2) {
-				special = v;
-				break;
-			}
+			if (v == null || v.type != 1 && v.type != 2) continue;
+			special = v;
+			break;
 		}
 		if (special != null) {
 			double dx = pos[0] - special.pos[0];
@@ -732,7 +733,7 @@ public class Vehicle {
 		
 		// Find other brown vehicles within cohesion radius
 		for (Vehicle v : allVehicles) {
-			if (v == this || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
+			if (v == null || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
 			
 			double dx = v.pos[0] - pos[0];
 			double dy = v.pos[1] - pos[1];
@@ -772,7 +773,7 @@ public class Vehicle {
 		
 		// Find other brown vehicles within separation radius
 		for (Vehicle v : allVehicles) {
-			if (v == this || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
+			if (v == null || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
 			
 			double dx = v.pos[0] - pos[0];
 			double dy = v.pos[1] - pos[1];
@@ -821,7 +822,7 @@ public class Vehicle {
 
 		// Find other brown vehicles within alignment radius
 		for (Vehicle v : allVehicles) {
-			if (v == this || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
+			if (v == null || v.type != 0 || !v.isNew) continue; // Only consider other brown vehicles
 			
 			double dx = v.pos[0] - pos[0];
 			double dy = v.pos[1] - pos[1];

@@ -102,12 +102,23 @@ public class Simulation extends JFrame {
 									if (numToAdd > 0 && numRemaining > 0) {
 										ArrayList<Vehicle> newVehicles = new ArrayList<>();
 										for (int i = 0; i < numToAdd; i++) {
-											Vehicle template = allVehicles.get(i % numRemaining);
+											// Select two random parents from existing black vehicles
+											Vehicle parent1 = allVehicles.get((int)(Math.random() * numRemaining));
+											Vehicle parent2 = allVehicles.get((int)(Math.random() * numRemaining));
 											Vehicle newVeh = new Vehicle();
-											newVeh.pos[0] = template.pos[0];
-											newVeh.pos[1] = template.pos[1];
-											newVeh.vel[0] = template.vel[0];
-											newVeh.vel[1] = template.vel[1];
+											// Inherit and mutate properties
+											newVeh.max_vel = (parent1.max_vel + parent2.max_vel) / 2 + (Math.random() - 0.5) * 0.2; // mutation
+											newVeh.rad_sep = (parent1.rad_sep + parent2.rad_sep) / 2 + (Math.random() - 0.5) * 2.0;
+											newVeh.rad_zus = (parent1.rad_zus + parent2.rad_zus) / 2 + (Math.random() - 0.5) * 5.0;
+											// Clamp values to reasonable ranges
+											newVeh.max_vel = Math.max(0.2, Math.min(newVeh.max_vel, 2.0));
+											newVeh.rad_sep = Math.max(5, Math.min(newVeh.rad_sep, 30));
+											newVeh.rad_zus = Math.max(50, Math.min(newVeh.rad_zus, 200));
+											// Position and velocity from template
+											newVeh.pos[0] = parent1.pos[0];
+											newVeh.pos[1] = parent1.pos[1];
+											newVeh.vel[0] = parent1.vel[0];
+											newVeh.vel[1] = parent1.vel[1];
 											newVeh.isNew = true;
 											newVehicles.add(newVeh);
 										}
@@ -123,7 +134,7 @@ public class Simulation extends JFrame {
 			};
 			redTimer.schedule(redTimerTask, 10000);
 		} else if (type == 2) {
-			special.max_vel = 1.0;
+			special.max_vel = 0.75;
 			special.pos[0] = 1000 * Simulation.pix * Math.random();
 			special.pos[1] = 800 * Simulation.pix * Math.random();
 			// Start timer to remove after 10 seconds
@@ -133,6 +144,52 @@ public class Simulation extends JFrame {
 						allVehicles.removeIf(v -> v.type == 2);
 						if (specialVehicleType == 2) specialVehicleType = 0;
 						repaint();
+						// Schedule new orange vehicles creation after 3 seconds
+						newVehiclesTask = new TimerTask() {
+							public void run() {
+								synchronized (Simulation.this) {
+									int numTarget = 120;
+									int numRemaining = 0;
+									for (Vehicle veh : allVehicles) {
+										if (veh.type == 0 && !veh.isNew && !veh.isOrange) numRemaining++;
+									}
+									int numToAdd = 120 - allVehicles.size();
+									if (numToAdd > 0 && numRemaining > 0) {
+										ArrayList<Vehicle> newVehicles = new ArrayList<>();
+										// Collect eligible parents (black vehicles only)
+										ArrayList<Vehicle> eligibleParents = new ArrayList<>();
+										for (Vehicle veh : allVehicles) {
+											if (veh.type == 0 && !veh.isNew && !veh.isOrange) eligibleParents.add(veh);
+										}
+										for (int i = 0; i < numToAdd; i++) {
+											// Select two random parents from eligible black vehicles
+											Vehicle parent1 = eligibleParents.get((int)(Math.random() * eligibleParents.size()));
+											Vehicle parent2 = eligibleParents.get((int)(Math.random() * eligibleParents.size()));
+											Vehicle newVeh = new Vehicle();
+											// Inherit and mutate properties
+											newVeh.max_vel = (parent1.max_vel + parent2.max_vel) / 2 + (Math.random() - 0.5) * 0.2; // mutation
+											newVeh.rad_sep = (parent1.rad_sep + parent2.rad_sep) / 2 + (Math.random() - 0.5) * 2.0;
+											newVeh.rad_zus = (parent1.rad_zus + parent2.rad_zus) / 2 + (Math.random() - 0.5) * 5.0;
+											// Clamp values to reasonable ranges
+											newVeh.max_vel = Math.max(0.2, Math.min(newVeh.max_vel, 2.0));
+											newVeh.rad_sep = Math.max(5, Math.min(newVeh.rad_sep, 30));
+											newVeh.rad_zus = Math.max(50, Math.min(newVeh.rad_zus, 200));
+											// Position and velocity from template
+											newVeh.pos[0] = parent1.pos[0];
+											newVeh.pos[1] = parent1.pos[1];
+											newVeh.vel[0] = parent1.vel[0];
+											newVeh.vel[1] = parent1.vel[1];
+											newVeh.isNew = false;
+											newVeh.isOrange = true;
+											newVehicles.add(newVeh);
+										}
+										allVehicles.addAll(newVehicles);
+									}
+									repaint();
+								}
+							}
+						};
+						newVehiclesTimer.schedule(newVehiclesTask, 3000);
 					}
 				}
 			};
@@ -192,13 +249,15 @@ public class Simulation extends JFrame {
 						}
 					}
 				}
-				allVehicles.removeAll(toRemove);
+				if (!toRemove.isEmpty()) {
+					allVehicles.removeAll(toRemove);
+				}
 			}
 			// Yellow special vehicle logic
 			if (special != null && special.type == 2) {
 				ArrayList<Vehicle> toRemove = new ArrayList<>();
 				for (Vehicle veh : allVehicles) {
-					if (veh.type == 0 && !veh.isNew) {
+					if (veh.type == 0 && !veh.isNew && !veh.isOrange) {
 						double dx = veh.pos[0] - special.pos[0];
 						double dy = veh.pos[1] - special.pos[1];
 						double dist = Math.sqrt(dx * dx + dy * dy);
@@ -208,7 +267,9 @@ public class Simulation extends JFrame {
 						}
 					}
 				}
-				allVehicles.removeAll(toRemove);
+				if (!toRemove.isEmpty()) {
+					allVehicles.removeAll(toRemove);
+				}
 			}
 			// Move all vehicles
 			for (int i = 0; i < allVehicles.size(); i++) {

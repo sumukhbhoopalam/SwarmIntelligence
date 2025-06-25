@@ -64,20 +64,10 @@ public class Canvas extends JPanel {
           	if(fz.type==1)g2d.setColor(Color.RED);
           	else if (fz.type==2)g2d.setColor(new Color(255, 215, 0)); // Golden yellow
           	else if (fz.type==3)g2d.setColor(new Color(181, 126, 220)); // Lavender
-          	else if (fz instanceof Vehicle && fz.isNew) g2d.setColor(new Color(139, 69, 19)); // brown
+          	else if (fz instanceof Vehicle && fz.isNew) g2d.setColor(Color.GREEN); // green
+          	else if (fz instanceof Vehicle && fz.isOrange) g2d.setColor(new Color(255, 140, 0)); // bright orange
           	else g2d.setColor(Color.BLACK);
         	g2d.draw(q);
-    		
-       		int    x  = (int)(fz.pos[0]/pix);
-       		int    y  = (int)(fz.pos[1]/pix);
-       		
-       		// Remove radius visualization for special vehicle
-       		// if(fz.type==1){
-       		//     int seite = (int)(fz.rad_zus/pix);
-       		//     g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
-       		//     seite = (int)(fz.rad_sep/pix);
-       		//     g2d.drawOval(x-seite, y-seite, 2*seite, 2*seite);
-       		// }
    	  	}        
 
         // Draw total number of vehicles in the top-left corner
