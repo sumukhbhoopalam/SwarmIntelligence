@@ -218,24 +218,40 @@ public class Vehicle {
 		}
 		double panicRadius = 0; // Much larger panic effect for full swarm propagation
 
+		Vehicle special = null;
+		Vehicle goldenSpecial = null;
+		for (Vehicle v : allVehicles) {
+			if (v.type == 1) {
+				special = v;
+			} else if (v.type == 2) {
+				goldenSpecial = v;
+			}
+		}
 		if (type == 1) {
 			isFleeing = false;
 			acc_dest = chaseSwarm(allVehicles);
 		} else if (type == 2) {
 			isFleeing = false;
 			acc_dest = goldenVehicleBehavior(allVehicles);
-		} else {
-			// Find special vehicle
-			Vehicle special = null;
-			Vehicle goldenSpecial = null;
-			for (Vehicle v : allVehicles) {
-				if (v.type == 1) {
-					special = v;
-				} else if (v.type == 2) {
-					goldenSpecial = v;
-				}
+		} else if (isNew && goldenSpecial != null) {
+			// Brown vehicles: follow yellow special vehicle as a swarm only if within vicinity, else brown-only swarm
+			double dx = pos[0] - goldenSpecial.pos[0];
+			double dy = pos[1] - goldenSpecial.pos[1];
+			double dist = Math.sqrt(dx * dx + dy * dy);
+			double vicinityRadius = 300;
+			if (dist < vicinityRadius) {
+				acc_dest = followGoldenVehicle(allVehicles, goldenSpecial);
+			} else {
+				acc_dest1 = cohesionWithBrownVehicles(allVehicles);
+				acc_dest2 = separationWithBrownVehicles(allVehicles);
+				acc_dest3 = alignmentWithBrownVehicles(allVehicles);
+				acc_rand = randomSmall();
+				acc_dest[0] = (f_zus * acc_dest1[0]) + (f_sep * acc_dest2[0]) + (f_aus * acc_dest3[0]) + (f_rand * acc_rand[0]);
+				acc_dest[1] = (f_zus * acc_dest1[1]) + (f_sep * acc_dest2[1]) + (f_aus * acc_dest3[1]) + (f_rand * acc_rand[1]);
 			}
-			// Check if this vehicle should flee from red special vehicle
+			isFleeing = false;
+		} else {
+			// Check if this vehicle should flee from red or yellow special vehicle
 			boolean shouldFlee = false;
 			if (special != null) {
 				double dx = pos[0] - special.pos[0];
@@ -244,6 +260,10 @@ public class Vehicle {
 				if (dist < fleeRadius) {
 					shouldFlee = true;
 				}
+			}
+			// If yellow special vehicle exists and this is a black vehicle, always flee
+			if (goldenSpecial != null && !isNew) {
+				shouldFlee = true;
 			}
 			// Panic propagation: if any other vehicle is fleeing and close, also flee
 			if (!shouldFlee) {

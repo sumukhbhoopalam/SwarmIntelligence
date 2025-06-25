@@ -1,4 +1,8 @@
 import java.util.ArrayList;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.*;
 
@@ -8,6 +12,13 @@ public class Simulation extends JFrame {
 	int anzFz = 120; // number of swarm objects (excluding special vehicle)
 	ArrayList<Vehicle> allVehicles = new ArrayList<Vehicle>();
 	JPanel canvas = new Canvas(allVehicles, pix);
+	JButton redButton;
+	JButton yellowButton;
+	volatile int specialVehicleType = 0; // 0: none, 1: red, 2: yellow
+	Timer redTimer = new Timer();
+	TimerTask redTimerTask = null;
+	Timer newVehiclesTimer = new Timer();
+	TimerTask newVehiclesTask = null;
 
 	Simulation() {
 		setTitle("Swarm");
@@ -16,15 +27,102 @@ public class Simulation extends JFrame {
 
 		for (int k = 0; k < anzFz; k++) {
 			Vehicle car = new Vehicle();
-			if (k == 0)
-				car.type = 1;
 			allVehicles.add(car);
 		}
 
+		redButton = new JButton("Start Red Special Vehicle");
+		yellowButton = new JButton("Start Yellow Special Vehicle");
+		redButton.setBounds(20, 10, 200, 30);
+		yellowButton.setBounds(240, 10, 220, 30);
+		canvas.setBounds(0, 50, 1000, 750);
+		add(redButton);
+		add(yellowButton);
 		add(canvas);
-		setSize(1000, 800);
+		setSize(1020, 850);
 		setVisible(true);
 
+		redButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				activateSpecialVehicle(1);
+			}
+		});
+		yellowButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				activateSpecialVehicle(2);
+			}
+		});
+	}
+
+	private synchronized void activateSpecialVehicle(int type) {
+		// Remove any existing special vehicle
+		allVehicles.removeIf(v -> v.type == 1 || v.type == 2);
+		// Cancel any running red timer
+		if (redTimerTask != null) {
+			redTimerTask.cancel();
+			redTimerTask = null;
+		}
+		// Cancel any pending new vehicles task
+		if (newVehiclesTask != null) {
+			newVehiclesTask.cancel();
+			newVehiclesTask = null;
+		}
+		// Add the new special vehicle
+		Vehicle special = new Vehicle();
+		special.type = type;
+		if (type == 1) {
+			special.max_vel = 1.0;
+			special.pos[0] = 1000 * Simulation.pix * Math.random();
+			special.pos[1] = 800 * Simulation.pix * Math.random();
+			// Start timer to remove after 10 seconds
+			redTimerTask = new TimerTask() {
+				public void run() {
+					synchronized (Simulation.this) {
+						allVehicles.removeIf(v -> v.type == 1);
+						if (specialVehicleType == 1) specialVehicleType = 0;
+						repaint();
+						// Schedule new vehicles creation after 3 seconds
+						newVehiclesTask = new TimerTask() {
+							public void run() {
+								synchronized (Simulation.this) {
+									int numTarget = 120;
+									int numRemaining = 0;
+									for (Vehicle veh : allVehicles) {
+										if (veh.type == 0) numRemaining++;
+									}
+									int numToAdd = numTarget - numRemaining;
+									if (numToAdd > 0 && numRemaining > 0) {
+										ArrayList<Vehicle> newVehicles = new ArrayList<>();
+										for (int i = 0; i < numToAdd; i++) {
+											Vehicle template = allVehicles.get(i % numRemaining);
+											Vehicle newVeh = new Vehicle();
+											newVeh.pos[0] = template.pos[0];
+											newVeh.pos[1] = template.pos[1];
+											newVeh.vel[0] = template.vel[0];
+											newVeh.vel[1] = template.vel[1];
+											newVeh.isNew = true;
+											newVehicles.add(newVeh);
+										}
+										allVehicles.addAll(newVehicles);
+									}
+									repaint();
+								}
+							}
+						};
+						newVehiclesTimer.schedule(newVehiclesTask, 3000);
+					}
+				}
+			};
+			redTimer.schedule(redTimerTask, 10000);
+		} else if (type == 2) {
+			special.max_vel = 1.0;
+			special.pos[0] = 1000 * Simulation.pix * Math.random();
+			special.pos[1] = 800 * Simulation.pix * Math.random();
+		}
+		double angle = 2 * Math.PI * Math.random();
+		special.vel[0] = special.max_vel * Math.cos(angle);
+		special.vel[1] = special.max_vel * Math.sin(angle);
+		allVehicles.add(special);
+		specialVehicleType = type;
 	}
 
 	public static void main(String args[]) {
@@ -34,133 +132,57 @@ public class Simulation extends JFrame {
 
 	public void run() {
 		Vehicle v;
-		long startTime = System.currentTimeMillis();
-		boolean specialRemoved = false;
-		boolean specialActive = false;
-
 		while (true) {
-			long elapsed = System.currentTimeMillis() - startTime;
-
-			// Activate the special vehicle only between 3 and 13 seconds
-			if (!specialActive && elapsed > 3000 && elapsed <= 13000) {
-				specialActive = true;
-			}
-			if (specialActive && elapsed > 13000) {
-				specialActive = false;
-			}
-
-			// Find the special vehicle (type == 1)
+			// Remove all but one special vehicle if any bug
+			allVehicles.removeIf(veh -> (veh.type == 1 || veh.type == 2) && veh.type != specialVehicleType);
+			// Contact logic for red special vehicle
 			Vehicle special = null;
 			for (Vehicle veh : allVehicles) {
-				if (veh.type == 1) {
+				if (veh.type == 1 || veh.type == 2) {
 					special = veh;
 					break;
 				}
 			}
-
-			// Only allow contact/deletion logic if special is active and not removed
-			if (specialActive && !specialRemoved) {
-				// Collect swarm vehicles to remove
-				ArrayList<Vehicle> toRemove = new ArrayList<>();
-				if (special != null) {
-					for (Vehicle veh : allVehicles) {
-						if (veh.type == 0) {
-							double dx = veh.pos[0] - special.pos[0];
-							double dy = veh.pos[1] - special.pos[1];
-							double dist = Math.sqrt(dx * dx + dy * dy);
-							// Use a contact threshold based on vehicle sizes
-							double contactThreshold = (veh.FZL + special.FZL) * 3.0; // 3x FZL for each
-							if (dist < contactThreshold) {
-								toRemove.add(veh);
-							}
-						}
-					}
-				}
-				// Remove vehicles that are in contact
-				allVehicles.removeAll(toRemove);
-			}
-
-			// After 13 seconds (10 seconds of special active), remove the special vehicle and create new vehicles
-			if (!specialRemoved && elapsed > 13000) {
-				if (special != null) {
-					allVehicles.remove(special);
-				}
-				int numTarget = 120;
-				int numRemaining = 0;
-				for (Vehicle veh : allVehicles) {
-					if (veh.type == 0) numRemaining++;
-				}
-				int numToAdd = numTarget - numRemaining;
-				if (numToAdd > 0 && numRemaining > 0) {
-					ArrayList<Vehicle> newVehicles = new ArrayList<>();
-					for (int i = 0; i < numToAdd; i++) {
-						Vehicle template = allVehicles.get(i % numRemaining);
-						Vehicle newVeh = new Vehicle();
-						newVeh.pos[0] = template.pos[0];
-						newVeh.pos[1] = template.pos[1];
-						newVeh.vel[0] = template.vel[0];
-						newVeh.vel[1] = template.vel[1];
-						newVeh.isNew = true;
-						newVehicles.add(newVeh);
-					}
-					allVehicles.addAll(newVehicles);
-				}
-				specialRemoved = true;
-			}
-
-			// Check for contact between black vehicles and golden yellow vehicle
-			Vehicle goldenVeh = null;
-			for (Vehicle vehicle : allVehicles) {
-				if (vehicle.type == 2) {
-					goldenVeh = vehicle;
-					break;
-				}
-			}
-			
-			if (goldenVeh != null) {
+			// Red special vehicle logic
+			if (special != null && special.type == 1) {
 				ArrayList<Vehicle> toRemove = new ArrayList<>();
 				for (Vehicle veh : allVehicles) {
-					if (veh.type == 0 && !veh.isNew) { // Only check black vehicles (original, not new)
-						double dx = veh.pos[0] - goldenVeh.pos[0];
-						double dy = veh.pos[1] - goldenVeh.pos[1];
+					if (veh.type == 0) {
+						double dx = veh.pos[0] - special.pos[0];
+						double dy = veh.pos[1] - special.pos[1];
 						double dist = Math.sqrt(dx * dx + dy * dy);
-						// Use a contact threshold based on vehicle sizes
-						double contactThreshold = (veh.FZL + goldenVeh.FZL) * 3.0; // 3x FZL for each
+						double contactThreshold = (veh.FZL + special.FZL) * 3.0;
 						if (dist < contactThreshold) {
 							toRemove.add(veh);
 						}
 					}
 				}
-				// Remove black vehicles that touched the golden yellow vehicle
 				allVehicles.removeAll(toRemove);
 			}
-
-			// Add the new golden yellow special vehicle after 15 seconds (2 seconds after red special is removed)
-			if (elapsed > 15000 && !allVehicles.stream().anyMatch(vehicle -> vehicle.type == 2)) {
-				Vehicle goldenVehicle = new Vehicle();
-				goldenVehicle.type = 2;
-				// Position it at a random location
-				goldenVehicle.pos[0] = 1000 * Simulation.pix * Math.random();
-				goldenVehicle.pos[1] = 800 * Simulation.pix * Math.random();
-				// Give it initial velocity to start moving
-				double angle = 2 * Math.PI * Math.random();
-				goldenVehicle.vel[0] = goldenVehicle.max_vel * Math.cos(angle);
-				goldenVehicle.vel[1] = goldenVehicle.max_vel * Math.sin(angle);
-				allVehicles.add(goldenVehicle);
+			// Yellow special vehicle logic
+			if (special != null && special.type == 2) {
+				ArrayList<Vehicle> toRemove = new ArrayList<>();
+				for (Vehicle veh : allVehicles) {
+					if (veh.type == 0 && !veh.isNew) {
+						double dx = veh.pos[0] - special.pos[0];
+						double dy = veh.pos[1] - special.pos[1];
+						double dist = Math.sqrt(dx * dx + dy * dy);
+						double contactThreshold = (veh.FZL + special.FZL) * 3.0;
+						if (dist < contactThreshold) {
+							toRemove.add(veh);
+						}
+					}
+				}
+				allVehicles.removeAll(toRemove);
 			}
-
+			// Move all vehicles
 			for (int i = 0; i < allVehicles.size(); i++) {
 				v = allVehicles.get(i);
-				// Only move the special vehicle if it is active
-				if (v.type == 1 && !specialActive) continue;
 				v.move(allVehicles);
 			}
-
 			try {
 				Thread.sleep(sleep);
-			} 
-			catch (InterruptedException e) {
-			}
+			} catch (InterruptedException e) {}
 			repaint();
 		}
 	}
