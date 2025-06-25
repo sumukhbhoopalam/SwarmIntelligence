@@ -117,6 +117,17 @@ public class Simulation extends JFrame {
 			special.max_vel = 1.0;
 			special.pos[0] = 1000 * Simulation.pix * Math.random();
 			special.pos[1] = 800 * Simulation.pix * Math.random();
+			// Start timer to remove after 10 seconds
+			redTimerTask = new TimerTask() {
+				public void run() {
+					synchronized (Simulation.this) {
+						allVehicles.removeIf(v -> v.type == 2);
+						if (specialVehicleType == 2) specialVehicleType = 0;
+						repaint();
+					}
+				}
+			};
+			redTimer.schedule(redTimerTask, 10000);
 		}
 		double angle = 2 * Math.PI * Math.random();
 		special.vel[0] = special.max_vel * Math.cos(angle);
