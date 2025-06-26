@@ -1,4 +1,7 @@
-
+//VectorCalculation.java is the utility class for all the math in our simulation. 
+//It helps calculate vector lengths, normalize directions, cap speeds, and even determine angles 
+//between agents. This makes the motion look smooth and believable.
+//For example, when a vehicle turns, flees, or aligns with its neighbors, this file quietly powers all of that behind the scenes 
 public class VectorCalculation {
 	static double truncate(double x, double y) {
 	
@@ -10,6 +13,8 @@ public class VectorCalculation {
 			return Math.max(x, -y);
 	}
 
+//Turns any vector into a unit vector (length = 1), keeping its direction.
+//Used when you want to keep direction but control speed separately.
 	static double[] normalize(double[] x) {
 		double[] res = new double[2];
 		double norm = Math.sqrt(Math.pow(x[0], 2) + Math.pow(x[1], 2));
@@ -23,6 +28,9 @@ public class VectorCalculation {
 		return res;
 	}
 
+	
+//Trims a full 2D vector’s length down to a maximum value y.
+//Used to cap acceleration or velocity vectors.
 	static double[] truncate(double[] x, double y) {
 		if (y < 0)
 			System.out.println("Mistake truncate");
@@ -37,6 +45,8 @@ public class VectorCalculation {
 		return res;
 	}
 
+//Calculates the angle between the vector and the horizontal axis.
+//Useful for drawing rotated vehicles in Canvas.
 	static double angle(double[] v1) {
 
 		double[] k = new double[2];
@@ -50,6 +60,8 @@ public class VectorCalculation {
 		return w;
 	}
 
+//Returns the angle between two vectors using the dot product.
+//Used for checking if a vehicle is in front or behind another.
 	static double angle(double[] v1, double[] v2) {
 		double betrag_v1 = Math.sqrt(Math.pow(v1[0], 2) + Math.pow(v1[1], 2));
 		double betrag_v2 = Math.sqrt(Math.pow(v2[0], 2) + Math.pow(v2[1], 2));
@@ -72,6 +84,10 @@ public class VectorCalculation {
 		}
 		return winkelRad;
 	}
+
+
+	//Calculates the distance between a point and a line segment.
+	//Used in:Steering toward a predicted location
 	static double[] dist(double[] pkt, double[] ort1, double[] ort2) {
 		double[] abstandsPkt = new double[2];
 		abstandsPkt[0] = 0;

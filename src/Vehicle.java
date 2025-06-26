@@ -1,5 +1,8 @@
 import java.util.ArrayList;
 
+//This file represents each agent in the swarm. It knows: Its own position, velocity, acceleration
+//Whether it’s a normal, special red, yellow, or lavender vehicle.If it should flee or follow
+//Who its neighbors are and how to behave around them
 public class Vehicle {
 	static int allId = 0;
 	int id; 
@@ -78,6 +81,8 @@ public class Vehicle {
 		this.generation = generation;
 	}
 
+	//Finds all vehicles within a given radius and returns them as a list.
+	//Used to determine which vehicles are nearby and how to interact with them.
 	ArrayList<Vehicle> neighbours(ArrayList<Vehicle> all, double radius1, double radius2) {
 		ArrayList<Vehicle> neighbours = new ArrayList<Vehicle>();
 		for (int i = 0; i < all.size(); i++) {
@@ -92,6 +97,8 @@ public class Vehicle {
 		return neighbours;
 	}
 
+	//Calculates the acceleration needed to reach a desired velocity.
+	//Used to adjust vehicle speed and direction based on its neighbors.
 	double[] calculateAcc(double[] vel_dest) {
 		double[] acc_dest = new double[2];
 
@@ -105,7 +112,8 @@ public class Vehicle {
 		return acc_dest;
 	}
 
-
+	//Calculates the acceleration needed to maintain cohesion with nearby vehicles.
+	//Used to keep the swarm together and moving in the same direction.
 	double[] cohesion(ArrayList<Vehicle> all) {
 		ArrayList<Vehicle> neighbours;
 		
@@ -136,6 +144,8 @@ public class Vehicle {
 		return acc_dest;
 	}
 
+	//Calculates the acceleration needed to maintain separation from nearby vehicles.
+	//Used to prevent vehicles from crowding each other.
 	double[] separation(ArrayList<Vehicle> all) {
 		ArrayList<Vehicle> neighbours;
 		double[] vel_dest = new double[2];
@@ -173,6 +183,9 @@ public class Vehicle {
 		return acc_dest;
 	}
 
+	//Calculates the acceleration needed to maintain alignment with nearby vehicles.
+	//Used to keep the swarm moving in the same direction as its neighbors.
+
 	double[] alignment(ArrayList<Vehicle> all) {
 		/* Ivan Perko, 12.12.2022
 		 * vel_dest[0] = neighbours.stream().mapToDouble(n -> n.vel[0]).average().getAsDouble();
@@ -205,6 +218,8 @@ public class Vehicle {
 		return acc_dest;
 	}
 
+	//Generates random acceleration for vehicles that need a little extra push.
+	//Used to add some natural variation to the swarm's movement.
 	double[] random() {
 		double[] acc_dest = new double[2];
 		acc_dest[0] = 0;
@@ -218,6 +233,8 @@ public class Vehicle {
 		return acc_dest;
 	}
 
+	//Calculates the total acceleration for a vehicle based on its current state and the 
+	//behaviors of its neighbors. Used to determine how the vehicle should move.
 	public double[] calculateWeightedAcc(ArrayList<Vehicle> allVehicles) {
 		double[] acc_dest  = new double[2];
 		double[] acc_dest1 = new double[2];
@@ -374,7 +391,8 @@ public class Vehicle {
 		return acc_dest;
 	}
 
-	// Small random vector for swarm vehicles
+	//Generates a small random vector for swarm vehicles.
+	//Used to add some natural variation to the swarm's movement.
 	private double[] randomSmall() {
 		double[] acc = new double[2];
 		double angle = 2 * Math.PI * Math.random();
@@ -388,7 +406,8 @@ public class Vehicle {
 		return acc;
 	}
 
-	// Chase the swarm for special vehicle
+	//Calculates the acceleration needed to chase a special vehicle.
+	//Used to keep the swarm together and moving in the same direction as the special vehicle.
 	private double[] chaseSwarm(ArrayList<Vehicle> allVehicles) {
 		double[] acc = new double[2];
 		acc[0] = 0;
@@ -455,7 +474,8 @@ public class Vehicle {
 		return acc;
 	}
 
-	// Behavior for the golden yellow special vehicle (type 2)
+	//Calculates the acceleration needed to maintain a golden yellow special vehicle.
+	//Used to keep the swarm together and moving in the same direction as the golden vehicle.
 	private double[] goldenVehicleBehavior(ArrayList<Vehicle> allVehicles) {
 		double[] acc = new double[2];
 		acc[0] = 0;
@@ -569,6 +589,8 @@ public class Vehicle {
 		return acc;
 	}
 
+	//Updates the vehicle's position and velocity based on its current state and the 
+	//behaviors of its neighbors. Used to move the vehicle around the canvas.
 	void move(ArrayList<Vehicle> allVehicles) {
 		double[] acc = calculateWeightedAcc(allVehicles);
 	
@@ -637,8 +659,7 @@ public class Vehicle {
 		}
 	}
 	
-
-	
+	//Calculates the acceleration for a vehicle to follow a special vehicle. Used for leader-follower dynamics
 	double[] follow(ArrayList<Vehicle> all) {
 		double[] pos_dest = new double[2];
 		double[] vel_dest = new double[2];
@@ -696,6 +717,7 @@ public class Vehicle {
 		return acc_dest;
 	}
 
+	//Checks if a vehicle is in front of another vehicle. 
 	boolean inFront(Vehicle v) {
 		//
 		boolean erg = false;

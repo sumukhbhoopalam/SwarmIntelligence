@@ -7,6 +7,7 @@ public class GeneticAlgorithm {
     public int generations = 50;
     private Individual bestIndividual = null;
 
+    //Constructor that initializes the population with random individuals.
     public GeneticAlgorithm() {
         population = new ArrayList<>();
         for (int i = 0; i < populationSize; i++) {
@@ -14,6 +15,8 @@ public class GeneticAlgorithm {
         }
     }
 
+    //Runs the genetic algorithm for three generations (black, green, orange), 
+    //evolving and evaluating each. Selects the best individuals and updates the simulation accordingly.
     public void run(Simulation simulation) {
         // --- Generation 1: Black ---
         population = new ArrayList<>();
@@ -78,6 +81,8 @@ public class GeneticAlgorithm {
         bestIndividual = selectBestN(fitnessMap, 1).get(0);
     }
 
+    //Sets the cohesion, alignment, and separation weights of all vehicles in the simulation to 
+    //those of the given individual. Used to apply genetic parameters to the simulation.
     private void applyParametersToSimulation(Simulation simulation, Individual ind) {
         // You need to implement this: set the weights in all vehicles
         for (Vehicle v : simulation.getAllVehicles()) {
@@ -87,6 +92,7 @@ public class GeneticAlgorithm {
         }
     }
 
+    //Calculates the fitness of an individual based on how close their vehicles are to each other.
     private double calculateCohesionFitness(List<Vehicle> vehicles) {
         int n = vehicles.size();
         double totalDistance = 0.0;
@@ -103,6 +109,7 @@ public class GeneticAlgorithm {
         return 1.0 / (1.0 + averageDistance); // Higher fitness = more cohesion
     }
 
+    //Selects a parent for crossover based on fitness. Uses a tournament selection method.
     private Individual selectParent(Map<Individual, Double> fitnessMap) {
         // Tournament selection
         List<Individual> individuals = new ArrayList<>(fitnessMap.keySet());
@@ -115,7 +122,8 @@ public class GeneticAlgorithm {
         }
         return best.copy();
     }
-
+    //Performs a simple average crossover between two individuals to create a new child.
+    //Implements simple genetic crossover.
     private Individual crossover(Individual p1, Individual p2) {
         // Simple average crossover
         return new Individual(
@@ -125,6 +133,7 @@ public class GeneticAlgorithm {
         );
     }
 
+    //Returns the best individual found during the genetic algorithm run.
     public Individual getBestIndividual() {
         return bestIndividual;
     }

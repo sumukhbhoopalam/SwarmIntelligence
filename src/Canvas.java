@@ -6,7 +6,9 @@ import java.util.ArrayList;
 
 import javax.swing.JPanel;
 
-
+//The Canvas class is where the whole simulation comes to life visually. It draws each vehicle 
+//with the correct shape, color, and orientation, making it easy to see how swarm members and special 
+//agents behave. It even dynamically displays the total count of agents in the top-left corner.
 public class Canvas extends JPanel {
 
 	ArrayList<Vehicle> 			allVehicles;
