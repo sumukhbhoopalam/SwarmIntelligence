@@ -119,6 +119,43 @@ public class Simulation extends JFrame {
 											newVeh.pos[1] = parent1.pos[1];
 											newVeh.vel[0] = parent1.vel[0];
 											newVeh.vel[1] = parent1.vel[1];
+											// Crossover for weights
+											double parent1Cohesion = parent1.getCohesionWeight();
+											double parent2Cohesion = parent2.getCohesionWeight();
+											double parent1Alignment = parent1.getAlignmentWeight();
+											double parent2Alignment = parent2.getAlignmentWeight();
+											double parent1Separation = parent1.getSeparationWeight();
+											double parent2Separation = parent2.getSeparationWeight();
+											double childCohesion = (parent1Cohesion + parent2Cohesion) / 2.0;
+											double childAlignment = (parent1Alignment + parent2Alignment) / 2.0;
+											double childSeparation = (parent1Separation + parent2Separation) / 2.0;
+											System.out.printf("Green Vehicle %d: Parent1 (C=%.4f, A=%.4f, S=%.4f), Parent2 (C=%.4f, A=%.4f, S=%.4f)\n",
+												i, parent1Cohesion, parent1Alignment, parent1Separation, parent2Cohesion, parent2Alignment, parent2Separation);
+											// Mutation: 10% chance for each weight
+											boolean mutated = false;
+											if (Math.random() < 0.1) {
+												childCohesion = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New cohesionWeight = %.4f\n", childCohesion);
+												mutated = true;
+											}
+											if (Math.random() < 0.1) {
+												childAlignment = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New alignmentWeight = %.4f\n", childAlignment);
+												mutated = true;
+											}
+											if (Math.random() < 0.1) {
+												childSeparation = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New separationWeight = %.4f\n", childSeparation);
+												mutated = true;
+											}
+											if (!mutated) {
+												System.out.println("  Mutation: No mutation occurred for this green vehicle.");
+											}
+											System.out.printf("  Resulting Green Vehicle: Cohesion=%.4f, Alignment=%.4f, Separation=%.4f\n",
+												childCohesion, childAlignment, childSeparation);
+											newVeh.setCohesionWeight(childCohesion);
+											newVeh.setAlignmentWeight(childAlignment);
+											newVeh.setSeparationWeight(childSeparation);
 											newVeh.isNew = true;
 											newVehicles.add(newVeh);
 										}
@@ -156,13 +193,13 @@ public class Simulation extends JFrame {
 									int numToAdd = 120 - allVehicles.size();
 									if (numToAdd > 0 && numRemaining > 0) {
 										ArrayList<Vehicle> newVehicles = new ArrayList<>();
-										// Collect eligible parents (black vehicles only)
+										// Collect eligible parents (green vehicles only)
 										ArrayList<Vehicle> eligibleParents = new ArrayList<>();
 										for (Vehicle veh : allVehicles) {
-											if (veh.type == 0 && !veh.isNew && !veh.isOrange) eligibleParents.add(veh);
+											if (veh.type == 0 && veh.isNew && !veh.isOrange) eligibleParents.add(veh);
 										}
 										for (int i = 0; i < numToAdd; i++) {
-											// Select two random parents from eligible black vehicles
+											// Select two random parents from eligible green vehicles
 											Vehicle parent1 = eligibleParents.get((int)(Math.random() * eligibleParents.size()));
 											Vehicle parent2 = eligibleParents.get((int)(Math.random() * eligibleParents.size()));
 											Vehicle newVeh = new Vehicle();
@@ -179,6 +216,43 @@ public class Simulation extends JFrame {
 											newVeh.pos[1] = parent1.pos[1];
 											newVeh.vel[0] = parent1.vel[0];
 											newVeh.vel[1] = parent1.vel[1];
+											// Crossover for weights
+											double parent1Cohesion = parent1.getCohesionWeight();
+											double parent2Cohesion = parent2.getCohesionWeight();
+											double parent1Alignment = parent1.getAlignmentWeight();
+											double parent2Alignment = parent2.getAlignmentWeight();
+											double parent1Separation = parent1.getSeparationWeight();
+											double parent2Separation = parent2.getSeparationWeight();
+											double childCohesion = (parent1Cohesion + parent2Cohesion) / 2.0;
+											double childAlignment = (parent1Alignment + parent2Alignment) / 2.0;
+											double childSeparation = (parent1Separation + parent2Separation) / 2.0;
+											System.out.printf("Orange Vehicle %d: Parent1 (ID=%d, C=%.4f, A=%.4f, S=%.4f), Parent2 (ID=%d, C=%.4f, A=%.4f, S=%.4f)\n",
+												i, parent1.id, parent1Cohesion, parent1Alignment, parent1Separation, parent2.id, parent2Cohesion, parent2Alignment, parent2Separation);
+											// Mutation: 10% chance for each weight
+											boolean mutated = false;
+											if (Math.random() < 0.1) {
+												childCohesion = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New cohesionWeight = %.4f\n", childCohesion);
+												mutated = true;
+											}
+											if (Math.random() < 0.1) {
+												childAlignment = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New alignmentWeight = %.4f\n", childAlignment);
+												mutated = true;
+											}
+											if (Math.random() < 0.1) {
+												childSeparation = Individual.MIN_WEIGHT + Math.random() * (Individual.MAX_WEIGHT - Individual.MIN_WEIGHT);
+												System.out.printf("  Mutation: New separationWeight = %.4f\n", childSeparation);
+												mutated = true;
+											}
+											if (!mutated) {
+												System.out.println("  Mutation: No mutation occurred for this orange vehicle.");
+											}
+											System.out.printf("  Resulting Orange Vehicle: Cohesion=%.4f, Alignment=%.4f, Separation=%.4f\n",
+												childCohesion, childAlignment, childSeparation);
+											newVeh.setCohesionWeight(childCohesion);
+											newVeh.setAlignmentWeight(childAlignment);
+											newVeh.setSeparationWeight(childSeparation);
 											newVeh.isNew = false;
 											newVeh.isOrange = true;
 											newVehicles.add(newVeh);
@@ -218,8 +292,16 @@ public class Simulation extends JFrame {
 	}
 
 	public static void main(String args[]) {
-		Simulation xx = new Simulation();
-		xx.run();
+		Simulation sim = new Simulation();
+		GeneticAlgorithm ga = new GeneticAlgorithm();
+		ga.run(sim);
+		// Visualize only the final generation (orange)
+		sim.resetVehicles();
+		for (Individual ind : ga.getFinalGeneration()) {
+			sim.createVehicleWithParams(ind, 3); // Orange
+		}
+		// Start the interactive simulation
+		sim.run();
 	}
 
 	public void run() {
@@ -281,5 +363,24 @@ public class Simulation extends JFrame {
 			} catch (InterruptedException e) {}
 			repaint();
 		}
+	}
+
+	public ArrayList<Vehicle> getAllVehicles() {
+		return allVehicles;
+	}
+
+	// Add this method to clear all vehicles (except special vehicles)
+	public void resetVehicles() {
+		allVehicles.removeIf(v -> v.type == 0);
+	}
+
+	// Add this method to create a single vehicle with parameters from an Individual
+	public void createVehicleWithParams(Individual ind, int generation) {
+		Vehicle car = new Vehicle(generation);
+		car.setCohesionWeight(ind.cohesionWeight);
+		car.setAlignmentWeight(ind.alignmentWeight);
+		car.setSeparationWeight(ind.separationWeight);
+		allVehicles.add(car);
+		repaint();
 	}
 }

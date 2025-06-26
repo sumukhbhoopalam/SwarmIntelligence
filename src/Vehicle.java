@@ -22,6 +22,13 @@ public class Vehicle {
 	boolean isNew = false; // True for new vehicles spawned after 10 seconds
 	public boolean isOrange = false; // True for orange vehicles spawned after yellow is deleted
 
+	// Add these fields to Vehicle
+	private double cohesionWeight = 0.3; // default values
+	private double separationWeight = 0.2;
+	private double alignmentWeight = 0.5;
+
+	int generation = 1; // 1=black, 2=green, 3=orange
+
 	Vehicle() {
 		allId++;
 		this.id = allId;
@@ -32,6 +39,7 @@ public class Vehicle {
 		this.type = 0;
 		this.max_acc = 0.05;// 0.1
 		this.max_vel = 1; // Default velocity for swarm vehicles
+		this.generation = 1; // Default to black
 
 		pos = new double[2];
 		vel = new double[2];
@@ -62,6 +70,12 @@ public class Vehicle {
 		vel[0] = max_vel * Math.cos(angle);
 		vel[1] = max_vel * Math.sin(angle);
 		this.isNew = false;
+	}
+
+	// Overloaded constructor to set generation
+	Vehicle(int generation) {
+		this();
+		this.generation = generation;
 	}
 
 	ArrayList<Vehicle> neighbours(ArrayList<Vehicle> all, double radius1, double radius2) {
@@ -211,9 +225,9 @@ public class Vehicle {
 		double[] acc_dest3 = new double[2];
 		double[] acc_flee  = new double[2];
 		double[] acc_rand  = new double[2];
-		double f_zus = 0.30;   // Stronger cohesion
-		double f_sep = 0.2;    // Moderate separation
-		double f_aus = 0.5;    // Stronger alignment
+		double f_zus = this.cohesionWeight;
+		double f_sep = this.separationWeight;
+		double f_aus = this.alignmentWeight;
 		double f_flee = 8.0;   // Flee force unchanged
 		double f_rand = 0.15;  // Much less random force
 		double fleeRadius = 0;
@@ -872,4 +886,16 @@ public class Vehicle {
 		}
 		return acc;
 	}
+
+	// Add setters
+	public void setCohesionWeight(double w) { this.cohesionWeight = w; }
+	public void setSeparationWeight(double w) { this.separationWeight = w; }
+	public void setAlignmentWeight(double w) { this.alignmentWeight = w; }
+
+	public double getCohesionWeight() { return this.cohesionWeight; }
+	public double getAlignmentWeight() { return this.alignmentWeight; }
+	public double getSeparationWeight() { return this.separationWeight; }
+
+	public void setGeneration(int generation) { this.generation = generation; }
+	public int getGeneration() { return this.generation; }
 }
